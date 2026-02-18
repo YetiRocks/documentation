@@ -104,6 +104,7 @@ body {
   color: var(--color-white) !important;
   text-decoration: none;
   padding: var(--space-2) var(--space-4);
+  border-left: 2px solid transparent;
   border-radius: var(--radius-sm);
   transition: all var(--transition-fast);
 }
@@ -117,9 +118,11 @@ body {
   color: var(--color-white) !important;
 }
 
-.sidebar li.active > a {
-  color: var(--color-white) !important;
+.sidebar li.active > a,
+.sidebar a.active {
+  color: #fff !important;
   font-weight: 200;
+  border-left: 2px solid #fff;
 }
 
 /* Hide the default mdBook resize handle */
