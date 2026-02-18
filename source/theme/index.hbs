@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="{{ language }}" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <title>Documentation | Yeti | {{ chapter_title }}</title>
+    <meta name="description" content="{{ description }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#121212">
+
+    <link rel="icon" href="{{ path_to_root }}favicon.png">
+    <link rel="shortcut icon" href="{{ path_to_root }}favicon.png">
+    <link rel="stylesheet" href="{{ path_to_root }}css/variables.css">
+    <link rel="stylesheet" href="{{ path_to_root }}css/general.css">
+    <link rel="stylesheet" href="{{ path_to_root }}css/chrome.css">
+    <link rel="stylesheet" href="{{ path_to_root }}css/print.css" media="print">
+
+    <!-- Fonts -->
+    <link rel="stylesheet" href="{{ path_to_root }}FontAwesome/css/font-awesome.css">
+    <link rel="stylesheet" href="{{ path_to_root }}fonts/fonts.css">
+
+    <!-- Highlight.js -->
+    <link rel="stylesheet" id="highlight-css" href="{{ path_to_root }}highlight.css">
+    <link rel="stylesheet" id="tomorrow-night-css" href="{{ path_to_root }}tomorrow-night.css">
+    <link rel="stylesheet" id="ayu-highlight-css" href="{{ path_to_root }}ayu-highlight.css">
+
+    <!-- Custom theme -->
+    {{#each additional_css}}
+    <link rel="stylesheet" href="{{ ../path_to_root }}{{ this }}">
+    {{/each}}
+
+    {{#if mathjax_support}}
+    <!-- MathJax -->
+    <script async type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    {{/if}}
+
+    <!-- Search -->
+    <script>
+        const path_to_root = "{{ path_to_root }}";
+        const default_light_theme = "rust";
+        const default_dark_theme = "navy";
+        window.path_to_searchindex_js = "{{ path_to_root }}searchindex.js";
+    </script>
+    <script src="{{ path_to_root }}toc.js"></script>
+</head>
+<body class="sidebar-visible coal">
+    <!-- Force coal (dark) theme -->
+    <script>
+        const html = document.documentElement;
+        html.classList.add("coal");
+        html.classList.add("js");
+        localStorage.setItem('mdbook-theme', 'coal');
+    </script>
+
+    <!-- Yeti Header — fixed, full viewport width -->
+    <header class="yeti-header">
+        <div class="header-left">
+            <img src="{{ path_to_root }}logo_white.svg" class="header-logo" alt="Yeti">
+        </div>
+        <div class="header-center">
+            <div id="search-wrapper" class="header-search">
+                <i class="fa fa-search header-search-icon"></i>
+                <form id="searchbar-outer" class="header-search-form">
+                    <input type="search" id="searchbar" name="searchbar" placeholder="Search documentation..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                </form>
+            </div>
+        </div>
+        <div class="header-right">
+            <span class="header-title">Documentation</span>
+        </div>
+    </header>
+    <!-- Hidden search-toggle stub for searcher.js compatibility -->
+    <button id="search-toggle" style="display:none" aria-expanded="false"></button>
+
+    <div id="body-container">
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Sidebar visibility -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="{{ path_to_root }}toc.html"></iframe>
+            </noscript>
+        </nav>
+
+        <!-- Hamburger toggle — always visible, attached to sidebar's right edge -->
+        <label id="sidebar-toggle" class="sidebar-hamburger" for="sidebar-toggle-anchor" title="Toggle sidebar" aria-label="Toggle sidebar" aria-expanded="true" aria-controls="sidebar">
+            <i class="fa fa-bars"></i>
+        </label>
+
+        <div id="page-wrapper" class="page-wrapper">
+            <div class="page">
+                <!-- Search Results -->
+                <div id="searchresults-outer" class="searchresults-outer hidden">
+                    <div id="searchresults-header" class="searchresults-header"></div>
+                    <ul id="searchresults"></ul>
+                </div>
+
+                <!-- Content -->
+                <div id="content" class="content">
+                    <main>
+                        {{{ content }}}
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        {{#previous}}
+                        <a rel="prev" href="{{ path_to_root }}{{ link }}" class="nav-prev" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <i class="fa fa-angle-left"></i>
+                        </a>
+                        {{/previous}}
+                        {{#next}}
+                        <a rel="next" href="{{ path_to_root }}{{ link }}" class="nav-next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <i class="fa fa-angle-right"></i>
+                        </a>
+                        {{/next}}
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{#if live_reload_endpoint}}
+    <script>
+        const defined_ws_url = "{{{ live_reload_endpoint }}}";
+        const defined_protocol = location.protocol === "https:" ? "wss:" : "ws:";
+        const defined_host = location.host;
+        const defined_endpoint = defined_ws_url || `${defined_protocol}//${defined_host}/_livereload`;
+        const socket = new WebSocket(defined_endpoint);
+        socket.onmessage = function (event) {
+            if (event.data === "reload") {
+                socket.close();
+                location.reload();
+            }
+        };
+        window.onbeforeunload = function() { socket.close(); };
+    </script>
+    {{/if}}
+
+    {{#if search_enabled}}
+    <script src="{{ path_to_root }}elasticlunr.min.js"></script>
+    <script src="{{ path_to_root }}mark.min.js"></script>
+    <script src="{{ path_to_root }}searcher.js"></script>
+    {{/if}}
+
+    <script src="{{ path_to_root }}clipboard.min.js"></script>
+    <script src="{{ path_to_root }}highlight.js"></script>
+    <script>
+    // Register GraphQL language for highlight.js
+    if (window.hljs) {
+      hljs.registerLanguage('graphql', function(hljs) {
+        return {
+          name: 'GraphQL',
+          aliases: ['gql'],
+          keywords: {
+            keyword: 'type input enum union interface implements extend schema directive scalar fragment query mutation subscription on true false null',
+            type: 'ID String Int Float Boolean Date',
+          },
+          contains: [
+            hljs.HASH_COMMENT_MODE,
+            hljs.QUOTE_STRING_MODE,
+            hljs.NUMBER_MODE,
+            { className: 'symbol', begin: '\\@[a-zA-Z_]\\w*' },
+            { className: 'punctuation', begin: '[!{}()\\[\\]:=|]' },
+            { className: 'variable', begin: '\\$[a-zA-Z_]\\w*' },
+          ],
+        };
+      });
+      // Re-highlight any graphql blocks
+      document.querySelectorAll('code.language-graphql').forEach(function(block) {
+        hljs.highlightElement(block);
+      });
+    }
+    </script>
+    <script src="{{ path_to_root }}book.js"></script>
+
+    {{#each additional_js}}
+    <script src="{{ ../path_to_root }}{{ this }}"></script>
+    {{/each}}
+
+    <!-- Eagerly load search index since searchbar is always visible -->
+    <script>
+    (function() {
+        // Trigger search index load by simulating showSearch
+        const searchbar = document.getElementById('searchbar');
+        if (searchbar) {
+            searchbar.addEventListener('focus', function onFirstFocus() {
+                // Click the hidden search-toggle to trigger index load
+                const toggle = document.getElementById('search-toggle');
+                if (toggle) toggle.click();
+                searchbar.removeEventListener('focus', onFirstFocus);
+            }, { once: true });
+            // Also load immediately if search param is in URL
+            if (window.location.search.includes('search=')) {
+                const toggle = document.getElementById('search-toggle');
+                if (toggle) setTimeout(() => toggle.click(), 100);
+            }
+        }
+    })();
+    </script>
+</body>
+</html>
