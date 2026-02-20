@@ -24,20 +24,17 @@
 
 # Guides
 
-- [Application Development](guides/application-development.md)
-  - [Application Structure](guides/app-structure.md)
-  - [Defining Schemas](guides/defining-schemas.md)
-  - [Custom Resources](guides/custom-resources.md)
-  - [Seed Data & Data Loading](guides/seed-data.md)
-  - [Static File Serving](guides/static-files.md)
-- [Data Operations](guides/data-operations.md)
-  - [CRUD Operations](guides/crud.md)
-  - [FIQL Queries](guides/fiql.md)
-  - [Pagination & Sorting](guides/pagination.md)
-  - [Field Selection](guides/field-selection.md)
-  - [Relationships & Joins](guides/relationships.md)
-  - [GraphQL](guides/graphql.md)
-  - [Vector Search](guides/vector-search.md)
+- [Defining Schemas](guides/defining-schemas.md)
+- [Custom Resources](guides/custom-resources.md)
+- [Seed Data & Data Loading](guides/seed-data.md)
+- [Static File Serving](guides/static-files.md)
+- [CRUD Operations](guides/crud.md)
+- [FIQL Queries](guides/fiql.md)
+- [Pagination & Sorting](guides/pagination.md)
+- [Field Selection](guides/field-selection.md)
+- [Relationships & Joins](guides/relationships.md)
+- [GraphQL](guides/graphql.md)
+- [Vector Search](guides/vector-search.md)
 - [Authentication & Authorization](guides/auth-overview.md)
   - [Basic Authentication](guides/auth-basic.md)
   - [JWT Authentication](guides/auth-jwt.md)
@@ -58,6 +55,7 @@
   - [Rate Limiting](guides/rate-limiting.md)
 - [URL Redirect Management](guides/redirects.md)
 - [Telemetry & Observability](guides/telemetry.md)
+- [Troubleshooting](guides/troubleshooting.md)
 
 ---
 

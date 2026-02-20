@@ -1,116 +1,62 @@
 # Telemetry Pipeline
 
-Yeti's telemetry architecture separates concerns cleanly: the core provides a minimal event channel, while all processing and storage lives in an optional extension.
+Core provides a minimal event channel (~260 lines). All processing lives in the optional `yeti-telemetry` extension.
 
-## Design Principles
-
-- **Zero OpenTelemetry in core** -- No otel crate dependencies, no feature flags.
-- **Core is ~260 lines** -- Single file: `src/platform/telemetry.rs`.
-- **Extension-owned processing** -- All log writing, file rotation, and OTLP export lives in `yeti-telemetry`.
-- **Pluggable** -- Delete yeti-telemetry and create your own extension implementing `EventSubscriber`.
-
-## Pipeline Architecture
+## Pipeline
 
 ```
 tracing::info!("message")
         │
-        ▼
-  DispatchLayer              (tracing subscriber layer)
+  DispatchLayer              Captures events as JSON
         │
-        ▼
-  JSON serialization         {"kind":"log", "timestamp":..., "level":..., ...}
+  Bounded Channel (10K)      tokio mpsc
         │
-        ▼
-  UnboundedChannel           (tokio mpsc)
+  EventSubscriber::run()     Implemented by extension
         │
-        ▼
-  EventSubscriber::run()     (implemented by extension)
-        │
-        ├──> Log/Span/Metric tables    (RocksDB persistence)
-        ├──> FileProvider              (JSONL file rotation)
-        ├──> SSE streams               (real-time dashboard)
-        └──> OtlpOutput               (optional Grafana/Datadog export)
+        ├──> Log/Span/Metric tables
+        ├──> FileProvider (JSONL rotation)
+        ├──> SSE streams
+        └──> OtlpOutput (optional)
 ```
 
 ## DispatchLayer
 
-The `DispatchLayer` is a `tracing` subscriber layer that intercepts all log events and span lifecycle events. It serializes them to JSON and sends them through an unbounded channel.
+A `tracing` subscriber layer that serializes log events and span lifecycle to JSON and sends through a bounded channel (capacity 10,000).
 
 ### Event Format
 
 ```json
-{
-  "kind": "log",
-  "timestamp": 1700000000.123,
-  "level": "INFO",
-  "target": "yeti_core::routing",
-  "message": "Request processed",
-  "fields": {"method": "GET", "path": "/api/users", "status": 200}
-}
-```
-
-```json
-{
-  "kind": "span",
-  "timestamp": 1700000000.456,
-  "name": "process_request",
-  "target": "yeti_core::http",
-  "level": "DEBUG",
-  "duration_ms": 12.5
-}
+{"kind": "log", "timestamp": 1700000000.123, "level": "INFO", "target": "yeti_core::routing", "message": "Request processed"}
+{"kind": "span", "timestamp": 1700000000.456, "name": "process_request", "level": "DEBUG", "duration_ms": 12.5}
 ```
 
 ### Feedback Filter
 
-The DispatchLayer skips events from these targets to prevent recursion (telemetry writes generating more telemetry events):
-
-- `yeti_core::pubsub`
-- `yeti_core::backend`
-- `yeti_core::telemetry`
-- `yeti_core::resource::table`
-- `yeti_core::http::sse`
+Skips events from `yeti_core::{pubsub, backend, telemetry, resource::table, http::sse}` to prevent telemetry writes from generating more telemetry.
 
 ## EventSubscriber Trait
 
-Extensions implement this trait to receive telemetry events:
-
 ```rust
 pub trait EventSubscriber: Send + 'static {
-    fn run(self: Box<Self>, rx: UnboundedReceiver<Value>);
+    fn run(
+        self: Box<Self>,
+        rx: mpsc::Receiver<Value>,
+    ) -> Pin<Box<dyn Future<Output = ()> + Send>>;
 }
 ```
 
-The host creates the channel, registers the sender with `DispatchLayer`, and spawns the subscriber's `run()` method after `on_ready()` returns.
-
-## Extension Load Order
-
-Telemetry extensions are sorted first in the extension loading order. This ensures the event subscriber is active before other extensions start up, capturing their initialization logs.
+The host creates the channel, registers the sender, and spawns `run()` after `on_ready()`.
 
 ## yeti-telemetry Extension
 
-The built-in telemetry extension provides:
-
 | Component | Purpose |
 |-----------|---------|
-| `TelemetryWriter` | Receives events and routes to outputs |
-| `FileProvider` | JSONL file rotation (date-based) |
+| `TelemetryWriter` | Routes events to outputs |
+| `FileProvider` | JSONL file rotation |
 | `OtlpOutput` | OpenTelemetry Protocol export |
-| Log/Span/Metric tables | Persistent storage with SSE streaming |
-| Dashboard UI | Web interface at `/yeti-telemetry/` |
-
-## OTLP Export
-
-Configure in `yeti-config.yaml`:
-
-```yaml
-telemetry:
-  metrics: true
-  otlpEndpoint: "http://localhost:4317"
-  serviceName: "yeti"
-```
-
-The extension lazily initializes an OpenTelemetry meter provider when `otlpEndpoint` is set.
+| Log/Span/Metric tables | Persistent storage + SSE |
+| Dashboard UI | `/yeti-telemetry/` |
 
 ## Without an Extension
 
-If no extension implements `EventSubscriber`, the `DispatchLayer` becomes a no-op. Only stdout logging (via the core's `init_stdout()`) remains active.
+DispatchLayer becomes a no-op. Only stdout logging remains.

@@ -1,74 +1,38 @@
 # Security Architecture
 
-Yeti provides a layered authentication and authorization system through the `yeti-auth` extension. Multiple auth providers are tried in sequence, and role-based access control governs what authenticated users can do.
+Yeti provides layered authentication through the `yeti-auth` extension.
 
 ## Auth Pipeline
 
 ```
-Incoming Request
-      │
-      ▼
-┌─────────────────┐
-│ BasicAuthProvider│──> Authorization: Basic header
-│                  │    Argon2id password verification
-└────────┬────────┘
-         │ (not matched)
-         ▼
-┌─────────────────┐
-│ JwtAuthProvider  │──> Authorization: Bearer header
-│                  │    Token validation + embedded permissions
-└────────┬────────┘
-         │ (not matched)
-         ▼
-┌─────────────────┐
-│ OAuthAuthProvider│──> Session cookie lookup
-│                  │    In-memory cache -> DB fallback
-└────────┬────────┘
-         │ (not matched)
-         ▼
-    401 Unauthorized
+Request ──> BasicAuthProvider (Authorization: Basic, Argon2id verification)
+        ──> JwtAuthProvider   (Authorization: Bearer, token validation)
+        ──> OAuthAuthProvider  (Session cookie, in-memory cache -> DB fallback)
+        ──> 401 Unauthorized
 ```
 
-Providers are tried in order. The first successful match determines the user's identity and role.
+Providers are tried in order. First match determines identity and role.
 
 ## Password Hashing
 
-All passwords are hashed with **Argon2id** using OWASP-recommended minimum parameters:
-
-- Memory: 19 MiB
-- Iterations: 2
-- Parallelism: 1
-
-Passwords are never stored in plaintext. The `BasicAuthProvider` maintains a credential cache with a 5-minute TTL to avoid repeated hashing on every request.
+**Argon2id** with OWASP-recommended minimum parameters (19 MiB memory, 2 iterations, 1 parallelism). Credential cache with 5-minute TTL avoids repeated hashing.
 
 ## JWT Authentication
 
-JWT tokens use HMAC-SHA256 signing. The system issues two token types:
+HMAC-SHA256 signing with two token types:
 
 | Token | TTL | Purpose |
 |-------|-----|---------|
-| Access token | 15 minutes | API authentication, embeds permissions |
-| Refresh token | 7 days | Exchange for new token pair |
-
-Access tokens embed the user's permissions directly, eliminating a database lookup on every request. Configure in `yeti-auth/config.yaml`:
-
-```yaml
-custom:
-  jwt:
-    secret: "${JWT_SECRET:-development-secret-change-in-production}"
-    access_ttl: 900
-    refresh_ttl: 604800
-```
-
-### Endpoints
+| Access | 15 min | API auth, embeds permissions |
+| Refresh | 7 days | Exchange for new token pair |
 
 ```bash
-# Login (returns access + refresh tokens)
+# Login
 curl -sk -X POST https://localhost:9996/yeti-auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"password"}'
 
-# Refresh tokens
+# Refresh
 curl -sk -X POST https://localhost:9996/yeti-auth/jwt_refresh \
   -H "Content-Type: application/json" \
   -d '{"refresh_token":"..."}'
@@ -76,10 +40,9 @@ curl -sk -X POST https://localhost:9996/yeti-auth/jwt_refresh \
 
 ## OAuth Integration
 
-OAuth support includes GitHub and Google providers. Each application configures its own OAuth rules:
+Per-app OAuth rules in config.yaml:
 
 ```yaml
-# Per-app config in config.yaml
 extensions:
   - yeti-auth:
       oauth:
@@ -92,40 +55,19 @@ extensions:
             role: standard
 ```
 
-### CSRF Protection
-
-OAuth flows use CSRF tokens stored in a `DashMap`:
-- Tokens have a 10-minute TTL.
-- Periodic cleanup runs every 100 insertions.
-- State parameter validated on callback.
-
-### SSRF Validation
-
-OAuth provider URLs are validated at startup:
-- Private IP addresses are rejected (10.x, 172.16-31.x, 192.168.x, 127.x).
-- HTTPS is required in production environments.
-
-### Session Persistence
-
-OAuth sessions are stored in two layers:
-1. **In-memory cache** -- Fast lookup for active sessions.
-2. **Database** -- Survives server restarts.
-
-Session cookies are set with `Secure`, `HttpOnly`, and `SameSite` attributes.
+- **CSRF tokens** stored in DashMap (10-minute TTL, periodic cleanup)
+- **SSRF validation** at startup (rejects private IPs, requires HTTPS in production)
+- **Session persistence** in memory + database (survives restarts)
+- Cookies set with `Secure`, `HttpOnly`, and `SameSite` attributes
 
 ## Role-Based Access Control
-
-Roles define permissions for tables and operations:
 
 ```json
 {
   "id": "admin",
-  "name": "Administrator",
   "permissions": {
     "super_user": true,
-    "tables": {
-      "*": { "read": true, "insert": true, "update": true, "delete": true }
-    }
+    "tables": { "*": { "read": true, "insert": true, "update": true, "delete": true } }
   }
 }
 ```
@@ -134,31 +76,23 @@ The `super_user` role is protected from deletion and privilege removal.
 
 ### Role Resolution
 
-- **Basic/JWT** -- User record contains `roleId`, resolved against the Role table.
-- **OAuth** -- Config rules map provider/email patterns to roles.
+- **Basic/JWT** - User record's `roleId` resolved against Role table
+- **OAuth** - Config rules map provider/email patterns to roles
 
 ### Attribute-Level Filtering
-
-Roles can restrict which fields are visible:
 
 ```json
 {
   "tables": {
     "employees": {
       "read": true,
-      "attributePermissions": {
-        "salary": { "read": false }
-      }
+      "attribute_permissions": { "salary": { "read": false } }
     }
   }
 }
 ```
 
-Non-admin users see `salary` filtered from responses.
-
 ## Rate Limiting
-
-Configured in `yeti-config.yaml`:
 
 ```yaml
 rateLimiting:
@@ -166,4 +100,4 @@ rateLimiting:
   maxConcurrentConnections: 100
 ```
 
-The HTTP layer enforces backpressure via `maxInFlightRequests` (default: 10,000).
+Backpressure via `maxInFlightRequests` returns 503 when exceeded.

@@ -1,139 +1,68 @@
-# CLI Arguments
-
-The `yeti-core` binary accepts command-line arguments to override configuration settings.
-
----
+# CLI Reference
 
 ## Usage
 
 ```bash
-yeti-core [OPTIONS]
+yeti [COMMAND] [OPTIONS]
 ```
 
----
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `init` | Initialize a new runtime directory with defaults, then start the server |
+| `start` | Start the server |
+| `stop` | Stop the running server |
+| `restart` | Stop and restart the server |
 
 ## Options
 
 ### --root-dir
 
-Override the root directory for all Yeti data. This takes precedence over the `ROOT_DIRECTORY` and `YETI_ROOT_DIR` environment variables, and the `rootDirectory` setting in `yeti-config.yaml`.
+Override the root directory. Takes precedence over `ROOT_DIRECTORY` and `YETI_ROOT_DIR` environment variables and the `rootDirectory` config setting.
 
 ```bash
-yeti-core --root-dir /opt/yeti
+yeti start --root-dir /opt/yeti
 ```
 
-| Argument | Type | Default |
-|----------|------|---------|
-| `--root-dir` | path | `~/yeti` (or `$ROOT_DIRECTORY` if set) |
-
-The root directory must contain:
-- `yeti-config.yaml` -- Server configuration
-- `applications/` -- Application directories
-- `data/` -- Database storage (created automatically)
-- `certs/` -- TLS certificates (created automatically if `tls.autoGenerate: true`)
+The root directory must contain `yeti-config.yaml` and `applications/`. The `data/` and `certs/` directories are created automatically.
 
 ### --apps
 
-Filter which applications to load at startup. Provide a comma-separated list of application IDs. Only the specified applications will be loaded; all others are skipped.
+Filter which applications to load. Comma-separated list of app IDs.
 
 ```bash
-yeti-core --apps yeti-auth,my-app,yeti-telemetry
+yeti start --apps yeti-auth,my-app,yeti-telemetry
 ```
 
-| Argument | Type | Default |
-|----------|------|---------|
-| `--apps` | comma-separated string | all enabled apps |
+Without `--apps`, all applications with `enabled: true` are loaded.
 
-When `--apps` is not provided, all applications with `enabled: true` in their `config.yaml` are loaded.
+## Startup Sequence
 
----
+1. Resolve root directory (CLI > env var > config default)
+2. Read `yeti-config.yaml`
+3. Discover applications in `$rootDirectory/applications/`
+4. Filter by `--apps` if specified
+5. Compile application plugins (~2 min per plugin on first run, ~10 seconds cached)
+6. Load plugins and register resources
+7. Start HTTPS server and Operations API
 
-## Examples
+## Plugin Cache
 
-### Start with default settings
-
-```bash
-yeti-core
-```
-
-Loads all enabled applications from `~/yeti/applications/` using `~/yeti/yeti-config.yaml`.
-
-### Start with a custom root directory
-
-```bash
-yeti-core --root-dir /opt/yeti-production
-```
-
-### Load only specific applications
-
-```bash
-yeti-core --apps application-template
-```
-
-### Combine options
-
-```bash
-yeti-core --root-dir /opt/yeti --apps yeti-auth,my-app
-```
-
-### Development: load only auth and your app
-
-```bash
-yeti-core --apps yeti-auth,my-app
-```
-
-This significantly reduces startup time by skipping compilation of unused applications.
-
----
-
-## Startup Behavior
-
-1. Parse CLI arguments
-2. Resolve root directory (CLI > env var > config default)
-3. Read `yeti-config.yaml` from root directory
-4. Discover applications in `$rootDirectory/applications/`
-5. Filter by `--apps` if specified, otherwise load all `enabled: true` apps
-6. Compile application plugins (first run takes ~2 min per plugin)
-7. Load compiled plugins and register resources
-8. Start HTTPS server on configured port
-9. Start Operations API on configured port
-
----
-
-## Plugin Compilation
-
-On first startup, each application's Rust source files are compiled into dynamic libraries. This takes approximately 2 minutes per application. Subsequent restarts use cached builds and take approximately 10 seconds.
-
-To clear the plugin cache (required after yeti-core rebuild):
+Clear the plugin cache when builds are stale:
 
 ```bash
 rm -rf ~/yeti/cache/builds/*/target/
 ```
 
-To also clear copied source files (required when fixing plugin errors):
+Clear copied source files too (required when fixing plugin errors):
 
 ```bash
 rm -rf ~/yeti/cache/builds/*/src/
 ```
 
----
-
-## Checking Status
-
-After startup, verify the server is running:
-
-```bash
-# Health check via operations API
-curl http://localhost:9995/health
-
-# Application API (with self-signed cert)
-curl -sk https://localhost:9996/application-template/TableName
-```
-
----
-
 ## See Also
 
-- [Server Configuration](server-config.md) -- Full `yeti-config.yaml` reference
-- [Environment Variables](environment-variables.md) -- Environment-based configuration
-- [Application Configuration](app-config.md) -- Per-app config files
+- [Server Configuration](server-config.md) - Full `yeti-config.yaml` reference
+- [Environment Variables](environment-variables.md) - Environment-based configuration
+- [Application Configuration](app-config.md) - Per-app config files

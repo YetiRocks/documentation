@@ -122,10 +122,12 @@
                         {{#previous}}
                         <a rel="prev" href="{{ path_to_root }}{{ link }}" class="nav-prev" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                             <i class="fa fa-angle-left"></i>
+                            <span class="nav-label">{{ title }}</span>
                         </a>
                         {{/previous}}
                         {{#next}}
                         <a rel="next" href="{{ path_to_root }}{{ link }}" class="nav-next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <span class="nav-label">{{ title }}</span>
                             <i class="fa fa-angle-right"></i>
                         </a>
                         {{/next}}
@@ -168,15 +170,22 @@
           name: 'GraphQL',
           aliases: ['gql'],
           keywords: {
-            keyword: 'type input enum union interface implements extend schema directive scalar fragment query mutation subscription on true false null',
-            type: 'ID String Int Float Boolean Date',
+            keyword: 'type input enum union interface implements extend schema directive scalar fragment query mutation subscription on',
+            literal: 'true false null',
           },
           contains: [
             hljs.HASH_COMMENT_MODE,
             hljs.QUOTE_STRING_MODE,
             hljs.NUMBER_MODE,
-            { className: 'symbol', begin: '\\@[a-zA-Z_]\\w*' },
+            // Directives (@table, @export, etc.) — meta class = yellow
+            { className: 'meta', begin: '\\@[a-zA-Z_]\\w*' },
+            // Built-in types (ID, String, Int, Float, Boolean, Date) — type class = green
+            { className: 'type', begin: '\\b(ID|String|Int|Float|Boolean|Date)\\b' },
+            // Field names (word followed by colon) — attr class = purple
+            { className: 'attr', begin: '[a-zA-Z_]\\w*(?=\\s*:)' },
+            // Punctuation
             { className: 'punctuation', begin: '[!{}()\\[\\]:=|]' },
+            // Variables
             { className: 'variable', begin: '\\$[a-zA-Z_]\\w*' },
           ],
         };

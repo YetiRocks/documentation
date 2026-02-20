@@ -1,8 +1,6 @@
 # Auth Hooks
 
-Auth hooks allow extensions to override role resolution at request time. They run before the default role-resolution logic, enabling patterns such as tenant-based roles, subdomain-specific permissions, or header-driven access control.
-
----
+Auth hooks let extensions override role resolution at request time, enabling tenant-based roles, subdomain permissions, or header-driven access control.
 
 ## The AuthHook Trait
 
@@ -17,26 +15,18 @@ pub trait AuthHook: Send + Sync {
 }
 ```
 
-When a request arrives with a valid identity (from Basic, JWT, or OAuth authentication), the auth middleware calls each registered hook in order. If any hook returns `Some(access)`, that access control object is used and the default role-resolution logic is skipped. If all hooks return `None`, the standard config-based resolution proceeds.
-
----
+If any hook returns `Some(access)`, default role resolution is skipped. If all return `None`, standard resolution proceeds.
 
 ## AuthIdentity
 
-The `AuthIdentity` struct contains the raw identity data extracted by an auth provider:
-
 | Field | Type | Description |
 |-------|------|-------------|
-| `username` | `String` | Authenticated username or identifier |
-| `provider` | `String` | Which provider authenticated this user (e.g., "basic", "jwt", "oauth") |
-| `claims` | `Option<Value>` | JWT claims or OAuth user data (JSON) |
-| `role_id` | `Option<String>` | Role identifier from the User record |
-
----
+| `username` | `String` | Authenticated username |
+| `provider` | `String` | Auth provider ("basic", "jwt", "oauth") |
+| `claims` | `Option<Value>` | JWT claims or OAuth user data |
+| `role_id` | `Option<String>` | Role ID from User record |
 
 ## AccessControl Trait
-
-Hooks return an implementation of the `AccessControl` trait:
 
 ```rust
 pub trait AccessControl: Send + Sync + std::fmt::Debug {
@@ -51,11 +41,7 @@ pub trait AccessControl: Send + Sync + std::fmt::Debug {
 }
 ```
 
----
-
-## Registering Auth Hooks
-
-Extensions register hooks by implementing `auth_hooks()` on the `Extension` trait:
+## Registering Hooks
 
 ```rust
 impl Extension for MyExtension {
@@ -67,11 +53,7 @@ impl Extension for MyExtension {
 }
 ```
 
----
-
 ## Example: Tenant-Based Roles
-
-A hook that resolves roles based on a `X-Tenant-ID` header:
 
 ```rust
 pub struct TenantHook {
@@ -91,54 +73,23 @@ impl AuthHook for TenantHook {
 }
 ```
 
----
-
-## Example: Subdomain-Specific Permissions
-
-A hook that checks the `Host` header to apply different permissions per subdomain:
-
-```rust
-#[async_trait::async_trait]
-impl AuthHook for SubdomainHook {
-    async fn on_resolve_role(
-        &self,
-        identity: &AuthIdentity,
-        params: &ResourceParams,
-    ) -> Option<Arc<dyn AccessControl>> {
-        let host = params.header("host")?;
-        if host.starts_with("admin.") {
-            Some(Arc::new(AdminAccess::new(identity.username.clone())))
-        } else {
-            None  // Fall through to default resolution
-        }
-    }
-}
-```
-
----
-
-## Hook Execution Order
+## Execution Order
 
 1. Request arrives with credentials
-2. `AuthPipeline` runs providers to produce `AuthIdentity`
-3. Each registered `AuthHook` is called in order
-4. First hook to return `Some(access)` wins
-5. If all hooks return `None`, default role resolution runs
-6. Default resolution: look up User record, resolve `roleId` to Role table
-
----
+2. `AuthPipeline` produces `AuthIdentity`
+3. Each `AuthHook` called in order
+4. First `Some(access)` wins
+5. All `None` falls through to default role resolution
 
 ## Best Practices
 
-- Return `None` from your hook to fall through to the default logic when you have no opinion about the request.
-- Hooks should be fast -- avoid database queries when possible, or cache results.
-- Use hooks for cross-cutting concerns (tenancy, subdomain routing). Use the standard Role table for per-user permissions.
-- The `super_user` role is protected from deletion and cannot have its privileges removed through hooks.
-
----
+- Return `None` to fall through when you have no opinion
+- Keep hooks fast - avoid database queries, or cache results
+- Use hooks for cross-cutting concerns (tenancy, subdomain routing)
+- `super_user` role cannot have privileges removed through hooks
 
 ## See Also
 
-- [Roles & Permissions](auth-rbac.md) -- Default RBAC system
-- [Building Extensions](building-extensions.md) -- Extension development guide
-- [Basic Authentication](auth-basic.md) -- Basic auth provider details
+- [Roles & Permissions](auth-rbac.md) - Default RBAC system
+- [Building Extensions](building-extensions.md) - Extension development
+- [Basic Authentication](auth-basic.md) - Basic auth details

@@ -1,17 +1,17 @@
 # Custom Resources
 
-Custom resources let you add business logic beyond the automatic CRUD operations that Yeti generates from your schema. Resources are Rust source files compiled into dynamic library plugins.
+Custom resources add business logic beyond auto-generated CRUD. They are Rust source files compiled into dynamic library plugins.
 
 ## Getting Started
 
-Place `.rs` files in a `resources/` directory and reference them in `config.yaml`:
+Place `.rs` files in `resources/` and reference them in `config.yaml`:
 
 ```yaml
 resources:
   - resources/*.rs
 ```
 
-Every resource file must start with the prelude import:
+Every resource file starts with:
 
 ```rust
 use yeti_core::prelude::*;
@@ -19,9 +19,7 @@ use yeti_core::prelude::*;
 
 ## The resource! Macro
 
-The `resource!` macro is the simplest way to define a resource. It generates the struct, trait implementation, and plugin registration.
-
-### Simple Resource (No Request Access)
+### Simple Resource
 
 ```rust
 use yeti_core::prelude::*;
@@ -31,11 +29,9 @@ resource!(Greeting {
 });
 ```
 
-This creates a `GET /my-app/greeting` endpoint returning JSON.
+Creates `GET /my-app/greeting` returning JSON.
 
-### Resource with Request and Context Access
-
-When you need to read the request body or access tables, name the parameters explicitly:
+### With Request and Context
 
 ```rust
 use yeti_core::prelude::*;
@@ -60,16 +56,16 @@ resource!(Items {
 });
 ```
 
-### Resource with Options
+### Options
 
 ```rust
-// Custom endpoint name (URL path differs from struct name)
+// Custom URL path
 resource!(MyHandler {
     name = "custom-path",
     get => json!({"data": "served at /app/custom-path"})
 });
 
-// Default/catch-all resource (handles all unmatched paths)
+// Catch-all for unmatched paths
 resource!(Fallback {
     default = true,
     get(request, ctx) => {
@@ -77,50 +73,31 @@ resource!(Fallback {
         reply().status(404).json(json!({"error": "Not found", "path": path}))
     }
 });
-
-// Both options combined
-resource!(CatchAll {
-    name = "fallback",
-    default = true,
-    get => reply().text("Not found")
-});
 ```
 
 ## ResourceParams API
 
-The context parameter (`ctx` in examples above) is a `ResourceParams` that provides access to the application environment.
+The `ctx` parameter provides access to the application environment.
 
 ### Table Access
 
 ```rust
-// Get a table handle by name
 let table = ctx.get_table("Product")?;
-
-// Read a record
 let record = table.get_by_id("prod-123").await?;
-
-// Write a record
 table.put("prod-123", json!({"id": "prod-123", "name": "Widget"})).await?;
 ```
 
 ### Path Parameters
 
 ```rust
-// Get path ID (from URL: /Resource/{id}) -- returns Option<&str>
-let id = ctx.path_id();
-
-// Get path ID or return 400 error
-let id = ctx.require_id()?;
-
-// Alias for path_id()
-let id = ctx.id();
+let id = ctx.path_id();       // Option<&str> from /Resource/{id}
+let id = ctx.require_id()?;   // Returns 400 if missing
 ```
 
 ### Configuration Access
 
 ```rust
-// Read from the app's config.yaml custom fields
-let origin_url = ctx.config().get_str("origin.url", "https://default.com");
+let url = ctx.config().get_str("origin.url", "https://default.com");
 let timeout = ctx.config().get_i64("api.timeout", 30);
 let enabled = ctx.config().get_bool("features.cache", false);
 ```
@@ -129,69 +106,48 @@ let enabled = ctx.config().get_bool("features.cache", false);
 
 ```rust
 ctx.response_headers().append("x-cache", "HIT");
-ctx.response_headers().append("Set-Cookie", "session=abc123; Path=/; HttpOnly");
 ctx.response_headers().set("X-Custom-Header", "value");
 ```
 
 ## Request Parsing
 
-The `request` parameter is a standard `http::Request<Vec<u8>>`.
+The `request` parameter is `http::Request<Vec<u8>>`:
 
 ```rust
-// Parse JSON body
 let body = request.json_value()?;
-
-// Extract required fields from JSON
-let name = body.require_str("name")?;       // Returns Result<String>
-let email = body.require_str("email")?;
-
-// Access optional fields
+let name = body.require_str("name")?;
 let bio = body.get("bio").and_then(|v| v.as_str());
 ```
 
 ## Response Helpers
 
-### JSON Responses
-
 ```rust
-// 200 OK with JSON (macro form)
+// 200 OK with JSON
 ok_json!({"status": "ok", "count": 42})
-
-// 200 OK with JSON (function form)
 ok_json!(data)
 
 // 201 Created
 created(json!({"id": "new-123"}))
 created_json!({"id": "new-123"})
 
-// Custom status with JSON
-reply().status(201).json(&data)
+// Custom status
 reply().status(404).json(json!({"error": "Not found"}))
-```
 
-### Other Content Types
+// Other content types
+ok_html("<h1>Hello</h1>")
+reply().text("Hello")
+reply().redirect("/new-location", Some(302))
 
-```rust
-// HTML response
-ok_html("<h1>Hello, World!</h1>")
-
-// Plain text
-reply().text("Hello, World!")
-
-// Custom headers and status
+// Custom headers
 reply()
     .status(200)
     .header("x-cache", "HIT")
-    .header("x-request-id", "req-456")
     .json(json!({"message": "Hello"}))
-
-// Redirect
-reply().redirect("/new-location", Some(302))
 ```
 
-## Default Resources
+## Manual Implementation
 
-A default resource acts as a catch-all handler. When `is_default()` returns `true`, the resource receives all requests that do not match other routes. The requested path is available via `ctx.path_id()` or `ctx.id()`.
+For full control, implement the `Resource` trait directly:
 
 ```rust
 use yeti_core::prelude::*;
@@ -204,21 +160,22 @@ impl Default for PageCache {
 
 impl Resource for PageCache {
     fn name(&self) -> &str { "PageCache" }
-
     fn is_default(&self) -> bool { true }
 
     fn get(&self, _request: Request<Vec<u8>>, ctx: ResourceParams) -> ResourceFuture {
         async_handler!({
             let path = ctx.id().unwrap_or("/");
             let cache = ctx.get_table("PageCache")?;
-
-            if let Some(cached) = cache.get_by_id(path).await? {
-                ctx.response_headers().append("x-cache", "HIT");
-                return ok_html(cached.as_str().unwrap_or_default());
+            match cache.get_by_id(path).await? {
+                Some(cached) => {
+                    ctx.response_headers().append("x-cache", "HIT");
+                    ok_html(cached.as_str().unwrap_or_default())
+                }
+                None => {
+                    ctx.response_headers().append("x-cache", "MISS");
+                    reply().status(404).text("Not cached")
+                }
             }
-
-            ctx.response_headers().append("x-cache", "MISS");
-            reply().status(404).text("Not cached")
         })
     }
 }
@@ -226,16 +183,8 @@ impl Resource for PageCache {
 register_resource!(PageCache);
 ```
 
-## Registration
-
-When using the `resource!` macro, registration is automatic. For manual implementations, add `register_resource!()` at the end of the file:
-
-```rust
-register_resource!(PageCache);
-```
-
-This macro generates the C ABI entry point that the plugin loader calls to discover your resource.
+The `resource!` macro handles registration automatically. For manual implementations, add `register_resource!(MyResource);` at the end.
 
 ## Supported HTTP Methods
 
-The `resource!` macro and `Resource` trait support: `get`, `post`, `put`, `patch`, `delete`, and `search`. Unimplemented methods return 405 Method Not Allowed by default.
+`get`, `post`, `put`, `patch`, `delete`, `search`. Unimplemented methods return 405.

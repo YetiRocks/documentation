@@ -1,34 +1,21 @@
 # Event Subscribers
 
-Event subscribers receive structured tracing events as JSON values over an unbounded channel. This is the mechanism by which extensions like yeti-telemetry capture log and span data from the core runtime.
-
----
+Event subscribers receive structured tracing events (logs and spans) as JSON over a bounded channel (capacity 10,000). This is how extensions like yeti-telemetry capture runtime data.
 
 ## The EventSubscriber Trait
 
-Extensions that want to receive tracing events implement the `EventSubscriber` trait:
-
 ```rust
-use tokio::sync::mpsc;
-use serde_json::Value;
-use std::pin::Pin;
-use std::future::Future;
-
 pub trait EventSubscriber: Send + 'static {
     fn run(
         self: Box<Self>,
-        rx: mpsc::UnboundedReceiver<Value>,
+        rx: mpsc::Receiver<Value>,
     ) -> Pin<Box<dyn Future<Output = ()> + Send>>;
 }
 ```
 
-The `run` method is called by the host runtime after `on_ready()` returns. The host creates the channel, registers the sender with the global `DispatchLayer`, and spawns the subscriber's future on the host tokio runtime.
+The host calls `run()` after `on_ready()` returns, creating a bounded channel (capacity 10,000) and spawning the future on the host tokio runtime.
 
----
-
-## JSON Event Format
-
-Every event sent through the channel is a `serde_json::Value` with one of two shapes:
+## Event Format
 
 ### Log Events
 
@@ -38,11 +25,8 @@ Every event sent through the channel is a `serde_json::Value` with one of two sh
   "timestamp": 1710000000000.0,
   "level": "INFO",
   "target": "my_app::handler",
-  "message": "Request processed successfully",
-  "fields": {
-    "request_id": "abc-123",
-    "duration_ms": "42"
-  }
+  "message": "Request processed",
+  "fields": { "request_id": "abc-123", "duration_ms": "42" }
 }
 ```
 
@@ -56,43 +40,28 @@ Every event sent through the channel is a `serde_json::Value` with one of two sh
   "level": "INFO",
   "startTime": 1710000000000.0,
   "endTime": 1710000000042.0,
-  "fields": {
-    "method": "GET",
-    "path": "/users"
-  }
+  "fields": { "method": "GET", "path": "/users" }
 }
 ```
 
-Fields are always string-valued in the JSON representation, even for numeric and boolean tracing fields.
+Fields are always string-valued in JSON, even for numeric tracing fields.
 
----
+## Registration
 
-## Registering a Subscriber
-
-Extensions register their subscriber during `on_ready()` using the `ExtensionContext`:
+Register during `on_ready()`:
 
 ```rust
 fn on_ready(&self, ctx: &ExtensionContext) -> Result<()> {
     let log_table = ctx.table("log");
-    let span_table = ctx.table("span");
-
-    let subscriber = Box::new(MyTelemetrySubscriber {
-        log_table,
-        span_table,
-    });
-
+    let subscriber = Box::new(MySubscriber { log_table });
     ctx.set_event_subscriber(subscriber);
     Ok(())
 }
 ```
 
-Only one subscriber can be active at a time. The last extension to call `set_event_subscriber()` wins. If no subscriber is registered, the `DispatchLayer` silently drops all events.
+Only one subscriber can be active. Last `set_event_subscriber()` wins. No subscriber means events are silently dropped.
 
----
-
-## Implementing a Subscriber
-
-A minimal subscriber that prints events to stderr:
+## Minimal Example
 
 ```rust
 pub struct DebugSubscriber;
@@ -100,7 +69,7 @@ pub struct DebugSubscriber;
 impl EventSubscriber for DebugSubscriber {
     fn run(
         self: Box<Self>,
-        mut rx: mpsc::UnboundedReceiver<Value>,
+        mut rx: mpsc::Receiver<Value>,
     ) -> Pin<Box<dyn Future<Output = ()> + Send>> {
         Box::pin(async move {
             while let Some(event) = rx.recv().await {
@@ -113,28 +82,16 @@ impl EventSubscriber for DebugSubscriber {
 }
 ```
 
----
-
 ## Feedback Prevention
 
-The `DispatchLayer` filters events from internal infrastructure targets to prevent infinite recursion. When a subscriber writes to a table, that write generates tracing events which would be captured again. Filtered targets include `yeti_core::pubsub`, `yeti_core::backend`, `yeti_core::resource::table`, and `yeti_core::http::sse`.
-
----
+The `DispatchLayer` filters events from internal targets (`yeti_core::pubsub`, `backend`, `resource::table`, `http::sse`) to prevent infinite recursion when subscribers write to tables.
 
 ## Dylib Safety
 
-The subscriber object is constructed in dylib context during `on_ready()` but executed by the host. This works safely because:
-
-- The channel receiver is host-created and passed to `run()`
-- `Arc<dyn KvBackend>` table references use vtable dispatch across the boundary
-- No tokio channel creation or `spawn` calls happen inside `run()`
-
-Do not call `tokio::spawn` or create channels inside the subscriber. Use `futures::stream::unfold` or loop over `rx.recv().await` directly.
-
----
+The subscriber is constructed in dylib context but executed by the host. This works because the channel receiver is host-created and `Arc<dyn KvBackend>` uses vtable dispatch across the boundary. Do **not** call `tokio::spawn` or create channels inside `run()`.
 
 ## See Also
 
-- [Building Extensions](building-extensions.md) -- Extension development overview
-- [Extension Lifecycle](extension-lifecycle.md) -- Startup and initialization order
-- [Telemetry & Observability](telemetry.md) -- The yeti-telemetry extension
+- [Building Extensions](building-extensions.md) - Extension development
+- [Extension Lifecycle](extension-lifecycle.md) - Initialization order
+- [Telemetry & Observability](telemetry.md) - yeti-telemetry extension
