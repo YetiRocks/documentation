@@ -13,3 +13,6 @@ static_files:
   path: web
   route: /
   index: index.html
+  build:
+    sourceDir: source
+    command: mdbook build
