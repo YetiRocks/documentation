@@ -16,7 +16,7 @@ preferred-dark-theme = "navy"
 git-repository-url = "https://github.com/yetiRocks/yeti"
 edit-url-template = "https://github.com/yetiRocks/yeti/edit/main/applications/documentation/source/{path}"
 site-url = "/documentation/"
-additional-css = ["theme/custom.css"]
+additional-css = ["theme/yeti.css", "theme/custom.css"]
 theme = "theme"
 
 [output.html.search]

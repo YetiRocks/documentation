@@ -5,7 +5,7 @@
 **macOS / Linux**
 
 ```bash
-curl -fsSL https://yetirocks.com/install/install.sh | sh
+curl -fsSL https://yetirocks.com/install.sh | sh
 ```
 
 **macOS (Homebrew)**
@@ -17,10 +17,10 @@ brew tap yetirocks/yeti && brew install yeti
 **Windows (PowerShell)**
 
 ```powershell
-irm https://yetirocks.com/install/install.ps1 | iex
+irm https://yetirocks.com/install.ps1 | iex
 ```
 
-Pre-built binaries are also available for direct download at [yetirocks.com/install](https://yetirocks.com/install/).
+Pre-built binaries are also available for direct download at [yetirocks.com/install](https://yetirocks.com/install).
 
 ## Initialize
 

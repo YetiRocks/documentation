@@ -1,86 +1,229 @@
 /**
- * Yeti Custom mdBook Theme
- * Matches yetirocks.com and yeti-builder UI design
+ * Documentation overrides on top of yeti.css
+ * Only styles specific to mdbook documentation layout
  */
 
-:root {
-  /* Core Colors - From builder UI variables.css */
-  --color-black: #121212;
-  --color-white: #dddddd;
-  --color-grey: #666666;
+/* ===== Base layout (replaces mdbook's general.css + chrome.css) ===== */
 
-  /* Status Colors */
-  --color-success: #ff00ff;
-  --color-warning: #d7ba7d;
-  --color-error: #d16969;
-  --color-info: #569cd6;
-
-  /* Overlays */
-  --color-black-overlay: rgba(0, 0, 0, 0.2);
-  --color-white-overlay: rgba(255, 255, 255, 0.06);
-
-  /* Spacing Scale */
-  --space-1: 0.25rem;
-  --space-2: 0.5rem;
-  --space-3: 0.75rem;
-  --space-4: 1rem;
-  --space-6: 1.5rem;
-  --space-8: 2rem;
-  --space-12: 3rem;
-
-  /* Typography */
-  --font-family-base: 'Ubuntu', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-  --font-family-mono: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Courier New', monospace;
-
-  /* Border Radius */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-
-  /* Transitions */
-  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* ===== Base Theme Overrides ===== */
-
-/* Force all backgrounds to #121212 black, overriding coal theme greys */
-.coal {
-  --bg: #121212;
-  --sidebar-bg: #121212;
-  --links: #ff00ff;
-}
-
-html {
-  font-family: var(--font-family-base);
-  color: var(--color-white);
-}
+html, body, #root { height: 100%; }
 
 body {
   background: var(--color-black);
   color: var(--color-white);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-base);
+  line-height: 1.7;
+  margin: 0;
 }
 
-.page-wrapper,
-.page {
-  background: var(--color-black) !important;
+.page-wrapper, .page { background: var(--color-black); }
+
+/* Sidebar layout — mdbook structure */
+#body-container {
+  display: flex;
+  height: calc(100vh - 73px);
 }
 
-/* ===== Sidebar Styling ===== */
+.sidebar {
+  width: 300px;
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+
+/* Sidebar toggle via hidden checkbox */
+.hidden { display: none; }
+
+/* When checkbox unchecked, hide sidebar */
+#sidebar-toggle-anchor:not(:checked) ~ .sidebar { display: none; }
+#sidebar-toggle-anchor:not(:checked) ~ #page-wrapper { flex: 1; }
+
+#page-wrapper {
+  flex: 1;
+  overflow-y: auto;
+  min-width: 0;
+}
+
+.page { min-height: 100%; }
+
+/* ===== Header — reuse yeti .header pattern ===== */
+
+.yeti-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 73px;
+  padding: 0 2rem;
+  border-bottom: 1px solid var(--color-border-primary);
+  background: var(--color-black);
+  flex-shrink: 0;
+}
+
+.yeti-header .header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.yeti-header .header-left a { text-decoration: none; border: none; }
+
+.yeti-header .header-logo {
+  height: 40px;
+  aspect-ratio: 684.5 / 269.55;
+  display: block;
+}
+
+.yeti-header .header-center {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.yeti-header .header-right {
+  display: flex;
+  align-items: center;
+}
+
+/* Nav links — match www exactly */
+.yeti-header .nav-link {
+  color: var(--color-grey);
+  font-size: var(--font-size-sm);
+  font-weight: 400;
+  text-decoration: none;
+  padding: 0.5rem 0;
+  border: none;
+  border-bottom: 2px solid transparent;
+  transition: all var(--transition-fast);
+  background: none;
+  margin: 0;
+}
+
+.yeti-header .nav-link:hover {
+  color: var(--color-white);
+}
+
+.yeti-header .nav-link.active {
+  color: var(--color-white);
+  border-bottom-color: var(--color-success);
+}
+
+/* Push body below fixed header */
+#body-container { margin-top: 73px; padding: 0; }
+
+/* Hide default mdBook menu bar */
+.menu-bar, #menu-bar, #menu-bar-hover-placeholder { display: none; }
+
+/* ===== Search — compact in header-right ===== */
+
+.header-search {
+  position: relative;
+  width: 220px;
+}
+
+#search-wrapper.hidden { display: flex; }
+.header-search-form { width: 100%; margin: 0; }
+
+.header-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-grey);
+  font-size: 14px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.yeti-header #searchbar {
+  width: 100%;
+  height: 36px;
+  padding: 0 12px 0 36px;
+  background: var(--color-white-overlay);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-md);
+  color: var(--color-white);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-sm);
+  outline: none;
+  box-sizing: border-box;
+}
+
+.yeti-header #searchbar:focus { border-color: var(--color-border-primary); }
+.yeti-header #searchbar::placeholder { color: var(--color-grey); }
+
+/* Search results */
+#searchresults-outer {
+  position: fixed;
+  top: 73px;
+  right: 0;
+  width: 400px;
+  max-height: calc(100vh - 73px);
+  overflow-y: auto;
+  background: var(--color-black);
+  border-left: 1px solid var(--color-border-primary);
+  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.4);
+  z-index: 150;
+  font-size: var(--font-size-sm);
+  padding: var(--space-4);
+}
+
+#searchresults-header {
+  font-size: var(--font-size-xs);
+  color: var(--color-grey);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border-primary);
+  margin-bottom: var(--space-3);
+}
+
+#searchresults {
+  background: var(--color-black);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#searchresults li { font-size: var(--font-size-sm); }
+
+.searchresult-outer {
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border-primary);
+}
+
+.searchresult-outer:hover { background: var(--color-white-overlay); }
+
+#searchresults a {
+  display: block;
+  margin-top: var(--space-3);
+}
+
+#searchresults a .breadcrumbs {
+  display: block;
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+mark {
+  background: rgba(215, 186, 125, 0.3);
+  color: var(--color-warning);
+  padding: 0.125rem 0.25rem;
+  border-radius: var(--radius-sm);
+}
+
+/* ===== Sidebar ===== */
 
 .sidebar {
   background: var(--color-black);
-  border-right: 1px solid var(--color-white-overlay);
-  top: 73px !important;  /* Push below yeti-header */
-  bottom: 0;
+  border-right: 1px solid var(--color-border-primary);
 }
 
-.sidebar-scrollbox {
-  background: var(--color-black);
-}
+.sidebar-scrollbox { background: var(--color-black); padding: var(--space-4) 0; }
+.sidebar .sidebar-resize-handle { display: none; }
 
-/* Chapter list container — no hover on the ol itself, no numbers */
-.sidebar ol.chapter {
+.sidebar ol.chapter, .sidebar ol.chapter ol {
   padding: 0;
   margin: 0;
   list-style: none;
@@ -88,49 +231,84 @@ body {
 
 .sidebar ol.chapter li {
   list-style: none;
+  margin: 5px 0;
 }
 
-.sidebar ol.chapter ol {
-  list-style: none;
-}
-
-.sidebar li {
-  list-style: none;
-  margin: var(--space-1) 0;
-}
+/* Nested sections indent */
+.sidebar ol.chapter ol { padding-left: var(--space-4); }
 
 .sidebar li a {
-  display: block;
-  color: var(--color-white) !important;
+  color: var(--color-grey);
   text-decoration: none;
-  padding: var(--space-2) var(--space-4);
+  padding: var(--space-2) var(--space-6);
   border-left: 2px solid transparent;
-  border-radius: var(--radius-sm);
   transition: all var(--transition-fast);
+  font-size: var(--font-size-sm);
 }
 
-/* Hide mdBook's chapter numbers (rendered as <strong> inside links) */
-.sidebar .chapter-item a strong {
-  display: none;
+/* Chapter item row: link + toggle caret side by side */
+.sidebar .chapter-item {
+  display: flex;
+  align-items: center;
 }
 
-.sidebar li a:hover {
-  color: var(--color-white) !important;
+.sidebar .chapter-item > a:first-child {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.sidebar li.active > a,
-.sidebar a.active {
-  color: #fff !important;
-  font-weight: 200;
-  border-left: 2px solid #fff;
+.sidebar .chapter-item > a.toggle {
+  flex-shrink: 0;
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  border: none;
+  border-left: none;
 }
 
-/* Hide the default mdBook resize handle */
-.sidebar .sidebar-resize-handle {
-  display: none !important;
+/* Hide mdBook chapter numbers */
+.sidebar .chapter-item a strong { display: none; }
+
+/* Expand/collapse toggle carets */
+.sidebar .toggle {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
 }
 
-/* Hamburger toggle — fixed, always visible */
+.sidebar li a:hover { color: var(--color-white); }
+
+.sidebar li.active > a, .sidebar a.active {
+  color: var(--color-white);
+  font-weight: 500;
+  border-left-color: var(--color-success);
+}
+
+.sidebar .part-title {
+  padding: var(--space-3) var(--space-6);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-white);
+}
+
+.sidebar .spacer {
+  height: 1px;
+  background: var(--color-border-primary);
+  margin: var(--space-4) 0;
+}
+
+/* Fold/expand — collapsed sections hidden until parent toggled */
+.sidebar .section { display: none; }
+.sidebar .chapter-item.expanded + li > .section { display: block; }
+
+/* Hamburger toggle */
 .sidebar-hamburger {
   position: fixed;
   left: 0;
@@ -139,140 +317,132 @@ body {
   z-index: 250;
   width: 32px;
   height: 40px;
-  display: flex !important;
+  display: flex;
   align-items: center;
   justify-content: center;
   background: var(--color-black);
-  border: 1px solid var(--color-white-overlay);
+  border: 1px solid var(--color-border-primary);
   border-left: none;
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   color: var(--color-grey);
   cursor: pointer;
-  transition: left var(--transition-base), background var(--transition-fast), color var(--transition-fast);
+  transition: left var(--transition-base), color var(--transition-fast);
   font-size: 16px;
 }
 
-.sidebar-hamburger:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--color-white);
-}
+.sidebar-hamburger:hover { color: var(--color-white); }
 
-/* When sidebar is open (checkbox checked), attach to sidebar's right edge */
 #sidebar-toggle-anchor:checked ~ .sidebar-hamburger {
   left: var(--sidebar-width, 300px);
 }
 
-/* Chapter separators (---) */
-.sidebar .spacer {
-  height: 1px;
-  background: var(--color-white-overlay);
-  margin: var(--space-4) 0;
-}
-
-/* ===== Content Area ===== */
+/* ===== Content ===== */
 
 .content {
   background: var(--color-black);
   color: var(--color-white);
   padding: var(--space-8);
-  padding-top: 64px !important;
   max-width: 900px;
   margin: 0 auto;
+  font-size: var(--font-size-base);
+  line-height: 1.7;
 }
 
-main {
-  color: var(--color-white);
+main { color: var(--color-white); }
+
+/* Reset yeti.css .header class — mdbook uses it for heading anchor links */
+.content a.header {
+  display: inline;
+  height: auto;
+  padding: 0;
+  border: none;
+  background: none;
+  flex-shrink: unset;
 }
 
 /* ===== Typography ===== */
 
 h1, h2, h3, h4, h5, h6 {
-  color: var(--color-white) !important;
+  color: var(--color-white);
   font-weight: 200;
-  font-size: 3rem;
-  margin-top: 4rem;
-  margin-bottom: 1.5rem;
+  margin-top: 2.5rem;
+  margin-bottom: 1rem;
 }
 
-
-/* Unbold all body content */
-body, p, li, td, th, blockquote, .content {
-  font-weight: 200;
-}
-
-strong, b {
-  font-weight: 200;
-}
-
-th {
-  font-weight: 200;
+.content > main > h1:first-child {
+  margin-top: 0;
 }
 
 h1 {
-  font-size: 4.5rem;
-  border-bottom: 2px solid var(--color-white-overlay);
-  padding-bottom: var(--space-4);
+  font-size: 3rem;
+  font-weight: 200;
+  border-bottom: none;
+  padding-bottom: 0;
 }
 
 h2 {
-  border-bottom: 1px solid var(--color-white-overlay);
+  font-size: var(--font-size-3xl, 1.75rem);
+  border-bottom: 1px solid var(--color-border-primary);
   padding-bottom: var(--space-3);
 }
 
-p {
-  line-height: 2rem;
-  margin: var(--space-4) 0;
-}
+h3 { font-size: var(--font-size-2xl, 1.35rem); }
+h4 { font-size: var(--font-size-xl); }
+h5, h6 { font-size: var(--font-size-base); }
+
+p { line-height: 1.7; margin: var(--space-4) 0; }
+
+strong, b { font-weight: 600; }
 
 /* ===== Links ===== */
 
-a,
-a:link,
-a:visited,
-.content a:link,
-.content a:visited,
+a, a:link, a:visited,
+.content a:link, .content a:visited,
 #searchresults a {
-  color: var(--color-success) !important;
+  color: var(--color-success);
   text-decoration: none;
   transition: color var(--transition-fast);
 }
 
-a:hover,
-.content a:hover,
-#searchresults a:hover {
-  color: var(--color-white) !important;
+a:hover, .content a:hover, #searchresults a:hover {
+  color: var(--color-white);
   text-decoration: underline;
 }
 
-/* Header anchor links must be white, not green */
-.content h1 a.header,
-.content h2 a.header,
-.content h3 a.header,
-.content h4 a.header,
-.content h5 a.header,
-.content h6 a.header,
-h1 a, h2 a, h3 a, h4 a, h5 a, h6 a,
-h1 a:link, h2 a:link, h3 a:link, h4 a:link, h5 a:link, h6 a:link,
-h1 a:visited, h2 a:visited, h3 a:visited, h4 a:visited, h5 a:visited, h6 a:visited,
-h1 a:hover, h2 a:hover, h3 a:hover, h4 a:hover, h5 a:hover, h6 a:hover {
-  color: var(--color-white) !important;
-  text-decoration: none !important;
+/* Header anchor links stay white */
+.content h1 a.header, .content h2 a.header, .content h3 a.header,
+.content h4 a.header, .content h5 a.header, .content h6 a.header,
+h1 a, h2 a, h3 a, h4 a, h5 a, h6 a {
+  color: var(--color-white);
+  text-decoration: none;
 }
 
-/* ===== Code Blocks ===== */
+/* ===== Code ===== */
 
 code {
   font-family: var(--font-family-mono);
   background: var(--color-white-overlay);
-  padding: 0.125rem 0.375rem;
+  padding: 0.2em 0.4em;
   border-radius: var(--radius-sm);
-  font-size: 0.9em;
+  font-size: 0.85em;
   color: #cf8e6d;
+  display: inline !important;
+  height: auto !important;
+  border: none !important;
+  flex-shrink: initial !important;
+}
+
+pre code {
+  display: block !important;
+  padding: 0;
+  background: #1e1e1e !important;
+  color: var(--color-white);
+  font-size: var(--font-size-sm);
 }
 
 pre {
-  background: var(--color-black) !important;
-  border: 1px solid var(--color-grey);
+  background: #1e1e1e;
+  border: 1px solid var(--color-border-primary);
   border-radius: var(--radius-md);
   padding: var(--space-6);
   overflow-x: auto;
@@ -280,9 +450,10 @@ pre {
 }
 
 pre code {
-  background: var(--color-black) !important;
+  background: var(--color-black);
   padding: 0;
   color: var(--color-white);
+  font-size: var(--font-size-sm);
 }
 
 /* ===== Tables ===== */
@@ -291,35 +462,29 @@ table {
   width: 100%;
   border-collapse: collapse;
   margin: var(--space-6) 0;
-  background: var(--color-white-overlay);
-  border-radius: var(--radius-md);
-  overflow: hidden;
+  background: #0b0b0b;
+  font-size: var(--font-size-sm);
 }
 
-thead {
-  background: var(--color-white-overlay);
-}
+thead { background: none; }
 
 th {
   padding: var(--space-3) var(--space-4);
   text-align: left;
   color: var(--color-white);
-  font-weight: 200;
-  border-bottom: 2px solid var(--color-white-overlay);
+  font-weight: 600;
+  border-bottom: 2px solid var(--color-border-primary);
 }
 
 td {
   padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--color-white-overlay);
+  border-bottom: 1px solid var(--color-border-primary);
 }
 
-tr:last-child td {
-  border-bottom: none;
-}
+tr:last-child td { border-bottom: none; }
+tr:hover { background: none; }
 
-tr:hover {
-  background: rgba(255, 255, 255, 0.03);
-}
+td code, th code { background: none; }
 
 /* ===== Blockquotes ===== */
 
@@ -332,459 +497,105 @@ blockquote {
   color: var(--color-white);
 }
 
-blockquote p {
-  margin: 0;
-}
-
-/* Warning/Note/Tip blocks */
-blockquote:has(strong:first-child) {
-  border-left-width: 4px;
-}
-
-blockquote strong:first-child {
-  display: block;
-  margin-bottom: var(--space-2);
-  font-weight: 200;
-}
+blockquote p { margin: 0; }
 
 /* ===== Lists ===== */
 
-ul, ol {
-  padding-left: var(--space-6);
-  margin: var(--space-4) 0;
-  line-height: 2rem;
-}
+ul, ol { padding-left: var(--space-6); margin: var(--space-4) 0; line-height: 1.7; }
+li { margin: var(--space-2) 0; }
 
-li {
-  margin: var(--space-2) 0;
-}
-
-/* ===== Navigation Buttons ===== */
+/* ===== Page Navigation ===== */
 
 .nav-wrapper {
-  margin-top: var(--space-12);
+  margin-top: var(--space-8);
   padding-top: var(--space-6);
-  border-top: 1px solid var(--color-white-overlay);
-  display: grid !important;
-  grid-template-columns: 1fr 1fr !important;
+  border-top: 1px solid var(--color-border-primary);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: var(--space-8);
 }
 
-.nav-wrapper a,
-.nav-wrapper a:link,
-.nav-wrapper a:visited,
-.nav-wrapper a:hover {
+.nav-wrapper a, .nav-wrapper a:link, .nav-wrapper a:visited, .nav-wrapper a:hover {
   height: 56px;
-  background: none !important;
-  padding: 0 !important;
-  color: var(--color-white) !important;
-  text-decoration: none !important;
-  border: none !important;
-  display: flex !important;
+  background: none;
+  padding: 0;
+  color: var(--color-white);
+  text-decoration: none;
+  border: none;
+  display: flex;
   align-items: center;
   gap: var(--space-3);
-  transform: none !important;
-  width: auto !important;
-}
-
-.nav-wrapper a .nav-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 0.9em;
-}
-
-.nav-wrapper a i {
-  flex-shrink: 0;
-  color: var(--color-grey);
-}
-
-.nav-wrapper .nav-prev {
-  grid-column: 1;
-  justify-content: flex-start;
-}
-
-.nav-wrapper .nav-next {
-  grid-column: 2;
-  justify-content: flex-end;
-}
-
-/* ===== Horizontal Rules ===== */
-
-hr {
-  border: none;
-  border-top: 1px solid var(--color-white-overlay);
-  margin: var(--space-8) 0;
-}
-
-/* ===== Yeti Header ===== */
-
-.yeti-header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 200;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 73px;
-  min-height: 73px;
-  padding: 0 3rem;
-  border-bottom: 1px solid var(--color-white-overlay);
-  background: var(--color-black);
-  flex-shrink: 0;
-}
-
-/* Push body content below fixed header */
-#body-container {
-  margin-top: 73px;
-}
-
-.yeti-header .header-left {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.yeti-header .header-center {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  padding: 0 2rem;
-}
-
-.yeti-header .header-right {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.yeti-header .header-logo {
-  height: 40px;
+  transform: none;
   width: auto;
-  display: block;
 }
 
-.yeti-header .header-title {
-  font-size: 20px !important;
-  font-weight: 700 !important;
-  color: var(--color-white) !important;
-  margin: 0 !important;
-  border: none !important;
-  padding: 0 !important;
-  line-height: 1 !important;
+.nav-wrapper a .nav-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nav-wrapper a i { flex-shrink: 0; color: var(--color-grey); }
+.nav-wrapper .nav-prev { grid-column: 1; justify-content: flex-start; }
+.nav-wrapper .nav-next { grid-column: 2; justify-content: flex-end; }
+
+/* ===== Misc ===== */
+
+hr { border: none; border-top: 1px solid var(--color-border-primary); margin: var(--space-8) 0; }
+#theme-toggle { display: none; }
+
+.page footer {
+  margin-top: var(--space-8);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--color-border-primary);
+  color: var(--color-grey);
+  font-size: var(--font-size-sm);
 }
 
-/* Header search bar */
-.header-search {
-  position: relative;
-  width: 100%;
-  max-width: 500px;
-}
-
-/* Never hide the search wrapper — it's always visible in the header */
-#search-wrapper.hidden {
-  display: flex !important;
-}
-
-.header-search-form {
-  width: 100%;
-  margin: 0;
-}
-
-.header-search-icon {
+/* Copy button on code blocks */
+.buttons {
   position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--color-grey);
-  font-size: 16px;
-  pointer-events: none;
-  z-index: 1;
+  top: var(--space-2);
+  right: var(--space-2);
+  z-index: 2;
 }
 
-.yeti-header #searchbar {
-  width: 100%;
-  height: 42px;
-  padding: 0 16px 0 40px;
+pre {
+  position: relative;
+}
+
+.clip-button {
   background: var(--color-white-overlay);
-  border: 1px solid var(--color-white-overlay);
-  border-radius: var(--radius-md);
-  color: var(--color-white);
-  font-family: var(--font-family-base);
-  font-size: 16px;
-  outline: none;
-  transition: border-color var(--transition-fast);
-  box-sizing: border-box;
-}
-
-.yeti-header #searchbar:focus {
-  border-color: var(--color-info);
-}
-
-.yeti-header #searchbar::placeholder {
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-sm);
   color: var(--color-grey);
-}
-
-/* Hide the default mdBook menu bar (replaced by yeti-header) */
-.menu-bar,
-#menu-bar,
-#menu-bar-hover-placeholder {
-  display: none !important;
-}
-
-/* ===== Search Bar ===== */
-
-#searchbar {
-  background: var(--color-white-overlay);
-  border: 1px solid var(--color-white-overlay);
-  color: var(--color-white);
-  padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-md);
+  cursor: pointer;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--font-size-xs);
   transition: all var(--transition-fast);
 }
 
-#searchbar:focus {
-  outline: none;
-  border-color: var(--color-info);
-  background: rgba(86, 156, 214, 0.1);
-}
-
-#searchresults-outer {
-  background: var(--color-black);
-  border: 1px solid var(--color-info);
-  border-radius: var(--radius-md);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-}
-
-#searchresults {
-  background: var(--color-black);
-}
-
-.searchresult-outer {
-  border-bottom: 1px solid var(--color-white-overlay);
-}
-
-.searchresult-outer:hover {
-  background: var(--color-white-overlay);
-}
-
-.searchresult-header {
-  color: var(--color-info);
-  font-weight: 200;
-}
-
-.searchresult-body {
+.clip-button:hover {
   color: var(--color-white);
+  background: rgba(255, 255, 255, 0.1);
 }
 
-mark {
-  background: rgba(215, 186, 125, 0.3);
-  color: var(--color-warning);
-  padding: 0.125rem 0.25rem;
-  border-radius: var(--radius-sm);
+.clip-button::before {
+  content: "Copy";
 }
 
-/* ===== Theme Toggle Button ===== */
+.clip-button i.tooltiptext { display: none; }
 
-#theme-toggle {
-  display: none; /* Hide theme toggle since we're using fixed dark theme */
-}
+/* hljs overrides */
+.hljs-symbol { color: #c77dbb; }
+.hljs-keyword { color: #cf8e6d; }
 
-/* ===== Scrollbar Styling ===== */
+/* ===== Scrollbar ===== */
 
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-white-overlay); border-radius: var(--radius-full); }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.1); }
 
-::-webkit-scrollbar-track {
-  background: var(--color-black);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--color-grey);
-  border-radius: var(--radius-sm);
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-info);
-}
-
-/* ===== Print Styles ===== */
-
-#print-button {
-  color: var(--color-white);
-}
-
-/* ===== Mobile Responsiveness ===== */
+/* ===== Mobile ===== */
 
 @media (max-width: 768px) {
-  .content {
-    padding: var(--space-4);
-  }
-
-  h1, h2, h3, h4, h5, h6 {
-    font-size: 3rem;
-  }
-
-  .nav-chapters {
-    flex-direction: column;
-  }
-}
-
-/* ===== Status Badges (for API compatibility tables, etc) ===== */
-
-.content table td:has(> *:only-child):only-child {
-  text-align: left;
-}
-
-/* Success indicators (✅, Complete, etc) */
-td:has(✅),
-td > :contains("Complete"),
-td > :contains("✅") {
-  color: var(--color-success);
-}
-
-/* Warning indicators (🚧, In Progress, etc) */
-td:has(🚧),
-td > :contains("In Progress"),
-td > :contains("🚧") {
-  color: var(--color-warning);
-}
-
-/* Info indicators (📋, Planned, etc) */
-td:has(📋),
-td > :contains("Planned"),
-td > :contains("📋") {
-  color: var(--color-info);
-}
-
-/* Error indicators (❌, Not Planned, etc) */
-td:has(❌),
-td > :contains("Not Planned"),
-td > :contains("❌") {
-  color: var(--color-error);
-}
-
-/* hljs overrides — ayu theme leaks its own colors */
-.hljs-symbol {
-  color: #c77dbb !important;
-}
-
-.hljs-keyword {
-  color: #cf8e6d !important;
-}
-
-/* ===== Code Language Labels ===== */
-
-pre[class*="language-"] {
-  position: relative;
-}
-
-/* ===== Utility Classes ===== */
-
-.text-center {
-  text-align: center;
-}
-
-.text-muted {
-  color: var(--color-grey);
-}
-
-.text-success {
-  color: var(--color-success);
-}
-
-.text-warning {
-  color: var(--color-warning);
-}
-
-.text-error {
-  color: var(--color-error);
-}
-
-.text-info {
-  color: var(--color-info);
-}
-
-/* ===== Footer / Edit Links ===== */
-
-.page footer {
-  margin-top: var(--space-12);
-  padding-top: var(--space-6);
-  border-top: 1px solid var(--color-white-overlay);
-  color: var(--color-grey);
-  font-size: 0.9em;
-}
-
-.page footer a {
-  color: var(--color-info);
-}
-
-/* ===== Admonitions / Callouts ===== */
-
-.warning,
-.note,
-.tip {
-  padding: var(--space-4);
-  border-radius: var(--radius-md);
-  margin: var(--space-6) 0;
-  border-left: 4px solid;
-}
-
-.warning {
-  background: rgba(215, 186, 125, 0.1);
-  border-left-color: var(--color-warning);
-}
-
-.note {
-  background: rgba(86, 156, 214, 0.1);
-  border-left-color: var(--color-info);
-}
-
-.tip {
-  background: rgba(255, 0, 255, 0.1);
-  border-left-color: var(--color-success);
-}
-
-/* ===== Loading Spinner ===== */
-
-.spinner {
-  border: 3px solid var(--color-white-overlay);
-  border-top: 3px solid var(--color-info);
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* ===== Hero Section (for README/index pages) ===== */
-
-.hero {
-  text-align: center;
-  padding: var(--space-12) 0;
-  margin-bottom: var(--space-8);
-}
-
-.hero h1 {
-  font-size: 4.5rem;
-  margin-bottom: var(--space-4);
-  background: linear-gradient(135deg, var(--color-white) 0%, var(--color-info) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.hero p {
-  font-size: 1.25rem;
-  color: var(--color-grey);
-  max-width: 600px;
-  margin: 0 auto;
+  .content { padding: var(--space-4); }
+  h1 { font-size: 1.75rem; }
+  h2 { font-size: 1.4rem; }
 }

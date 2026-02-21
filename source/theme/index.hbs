@@ -9,21 +9,11 @@
 
     <link rel="icon" href="{{ path_to_root }}favicon.png">
     <link rel="shortcut icon" href="{{ path_to_root }}favicon.png">
-    <link rel="stylesheet" href="{{ path_to_root }}css/variables.css">
-    <link rel="stylesheet" href="{{ path_to_root }}css/general.css">
-    <link rel="stylesheet" href="{{ path_to_root }}css/chrome.css">
-    <link rel="stylesheet" href="{{ path_to_root }}css/print.css" media="print">
 
-    <!-- Fonts -->
+    <!-- FontAwesome for icons -->
     <link rel="stylesheet" href="{{ path_to_root }}FontAwesome/css/font-awesome.css">
-    <link rel="stylesheet" href="{{ path_to_root }}fonts/fonts.css">
 
-    <!-- Highlight.js -->
-    <link rel="stylesheet" id="highlight-css" href="{{ path_to_root }}highlight.css">
-    <link rel="stylesheet" id="tomorrow-night-css" href="{{ path_to_root }}tomorrow-night.css">
-    <link rel="stylesheet" id="ayu-highlight-css" href="{{ path_to_root }}ayu-highlight.css">
-
-    <!-- Custom theme -->
+    <!-- Yeti design system + documentation overrides (no mdbook CSS) -->
     {{#each additional_css}}
     <link rel="stylesheet" href="{{ ../path_to_root }}{{ this }}">
     {{/each}}
@@ -39,6 +29,7 @@
         const default_light_theme = "rust";
         const default_dark_theme = "navy";
         window.path_to_searchindex_js = "{{ path_to_root }}searchindex.js";
+        window.playground_copyable = true;
     </script>
     <script src="{{ path_to_root }}toc.js"></script>
 </head>
@@ -51,21 +42,26 @@
         localStorage.setItem('mdbook-theme', 'coal');
     </script>
 
-    <!-- Yeti Header — fixed, full viewport width -->
+    <!-- Yeti Header — matches www site top nav -->
     <header class="yeti-header">
         <div class="header-left">
-            <img src="{{ path_to_root }}logo_white.svg" class="header-logo" alt="Yeti">
+            <a href="/"><img src="{{ path_to_root }}logo_white.svg" class="header-logo" alt="Yeti"></a>
         </div>
         <div class="header-center">
+            <a href="/" class="nav-link">Home</a>
+            <a href="/platform" class="nav-link">Platform</a>
+            <a href="/applications" class="nav-link">Applications</a>
+            <a href="/benchmarks" class="nav-link">Benchmarks</a>
+            <a href="/demos" class="nav-link">Demos</a>
+            <a href="/documentation/" class="nav-link active">Documentation</a>
+        </div>
+        <div class="header-right">
             <div id="search-wrapper" class="header-search">
                 <i class="fa fa-search header-search-icon"></i>
                 <form id="searchbar-outer" class="header-search-form">
-                    <input type="search" id="searchbar" name="searchbar" placeholder="Search documentation..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    <input type="search" id="searchbar" name="searchbar" placeholder="Search..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
                 </form>
             </div>
-        </div>
-        <div class="header-right">
-            <span class="header-title">Documentation</span>
         </div>
     </header>
     <!-- Hidden search-toggle stub for searcher.js compatibility -->
@@ -76,20 +72,14 @@
 
         <!-- Sidebar visibility -->
         <script>
-            let sidebar = null;
             const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
-            if (document.body.clientWidth >= 1080) {
-                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
-                sidebar = sidebar || 'visible';
+            let sidebarState = 'visible';
+            if (document.body.clientWidth < 1080) {
+                sidebarState = 'hidden';
             } else {
-                sidebar = 'hidden';
-                sidebar_toggle.checked = false;
+                try { sidebarState = localStorage.getItem('mdbook-sidebar') || 'visible'; } catch(e) {}
             }
-            if (sidebar === 'visible') {
-                sidebar_toggle.checked = true;
-            } else {
-                html.classList.remove('sidebar-visible');
-            }
+            sidebar_toggle.checked = (sidebarState === 'visible');
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
@@ -197,6 +187,24 @@
     }
     </script>
     <script src="{{ path_to_root }}book.js"></script>
+    <script>
+    // Override scroll-to-top to only scroll the content area, not the sidebar
+    (function() {
+        var pw = document.getElementById('page-wrapper');
+        if (pw) {
+            // Patch: book.js uses document.scrollingElement.scrollTo — redirect to #page-wrapper
+            var origScrollTo = Element.prototype.scrollTo;
+            Object.defineProperty(document.scrollingElement, 'scrollTo', {
+                value: function(opts) { origScrollTo.call(pw, opts); },
+                writable: true
+            });
+            Object.defineProperty(document.scrollingElement, 'scrollTop', {
+                get: function() { return pw.scrollTop; },
+                set: function(v) { pw.scrollTop = v; }
+            });
+        }
+    })();
+    </script>
 
     {{#each additional_js}}
     <script src="{{ ../path_to_root }}{{ this }}"></script>
