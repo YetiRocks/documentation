@@ -5,7 +5,7 @@ description = "Documentation"
 version = "1.0.0"
 
 [package.metadata.app]
-customer_id = "yeti"
+account_id = "yeti"
 tools = ["mdbook@0.4"]
 # ADR-028 docs-corpus vector pipeline. The build emits two output targets:
 #   web/   — rendered HTML site (mdbook)
